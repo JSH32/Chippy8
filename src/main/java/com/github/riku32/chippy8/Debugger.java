@@ -8,6 +8,7 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -41,33 +42,30 @@ public class Debugger extends JFrame implements Runnable {
             JToolBar toolBar = new JToolBar();
             toolBar.setFloatable(false);
 
+            InputStream stepStream = getClass().getClassLoader().getResourceAsStream("step.png");
             Icon stepIcon = new ImageIcon(
-                    Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("step.png")).readAllBytes(), "Step");
+                    Objects.requireNonNull(stepStream).readAllBytes(), "Step");
+            stepStream.close();
             final JToggleButton stepButton = new JToggleButton(stepIcon);
-            stepButton.addItemListener(new ItemListener() {
-                public void itemStateChanged(ItemEvent e) {
-                    chip8.cycle();
-                }
-            });
+            stepButton.addItemListener(e -> chip8.cycle());
 
             stepButton.setEnabled(false);
 
             // Pause icon
+            InputStream pauseStream = getClass().getClassLoader().getResourceAsStream("pause.png");
             Icon pauseIcon = new ImageIcon(
-                    Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("pause.png")).readAllBytes(), "Pause");
+                    Objects.requireNonNull(pauseStream).readAllBytes(), "Pause");
+            pauseStream.close();
             JToggleButton pauseButton = new JToggleButton(pauseIcon);
-            pauseButton.addItemListener(new ItemListener() {
-                public void itemStateChanged(ItemEvent e) {
-                    boolean enabled = e.getStateChange() == ItemEvent.SELECTED;
-                    paused = enabled;
-                    stepButton.setEnabled(enabled);
-                }
+            pauseButton.addItemListener(e -> {
+                boolean enabled = e.getStateChange() == ItemEvent.SELECTED;
+                paused = enabled;
+                stepButton.setEnabled(enabled);
             });
 
             toolBar.add(pauseButton);
             toolBar.add(stepButton);
 
-            //constraints.anchor = GridBagConstraints.NORTHEAST;
             constraints.gridx = 0;
             constraints.gridy = 0;
 

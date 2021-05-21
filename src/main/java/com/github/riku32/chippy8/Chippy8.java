@@ -23,6 +23,7 @@ public class Chippy8 {
 
     private final Chip8 chip8;
     private final Debugger debugger;
+    private final About about;
 
     /**
      * Check if file has extensions
@@ -53,11 +54,15 @@ public class Chippy8 {
         debugger = new Debugger(chip8);
         debugger.setVisible(false);
 
+        about = new About();
+        about.setVisible(false);
+
+
         final JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         menuBar.add(fileMenu);
 
-        fileMenu.add(new JMenuItem(new AbstractAction("Open") {
+        fileMenu.add(new JMenuItem(new AbstractAction("Open ROM or State") {
             public void actionPerformed(ActionEvent e) {
                 JFileChooser chooser = new JFileChooser();
                 chooser.setDialogTitle("Load rom or state");
@@ -71,7 +76,8 @@ public class Chippy8 {
                     try {
                         buffer = Files.readAllBytes(chooser.getSelectedFile().toPath());
                     } catch (Exception ignored) {
-                        System.err.println("ROM file could not be read");
+                        JOptionPane.showMessageDialog(frame, "Could not read ROM file",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
@@ -79,13 +85,14 @@ public class Chippy8 {
                         try {
                             chip8.loadState(buffer);
                         } catch (Exception ignored) {
-                            ignored.printStackTrace();
-                            System.err.println("There was a problem deserializing state");
+                            JOptionPane.showMessageDialog(frame, "There was a problem deserializing the state",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
                         }
                     } else if (hasExtension(chooser.getSelectedFile().getName(), "ch8")) {
                         chip8.loadRom(buffer);
                     } else {
-                        System.err.println("Invalid file type provided");
+                        JOptionPane.showMessageDialog(frame, "Invalid file type provided",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -98,7 +105,8 @@ public class Chippy8 {
                 try {
                     state = chip8.saveState();
                 } catch (Exception ignored) {
-                    System.err.println("Could not get state");
+                    JOptionPane.showMessageDialog(frame, "Could not get the state",
+                            "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -118,18 +126,42 @@ public class Chippy8 {
                             FileOutputStream outputStream = new FileOutputStream(file);
                             outputStream.write(state);
                         } else {
-                            JOptionPane.showMessageDialog(frame, "That file already exists!");
+                            JOptionPane.showMessageDialog(frame, "That file already exists!",
+                                    "Error", JOptionPane.ERROR_MESSAGE);
                         }
                     } catch (Exception ignored) {
-                        System.err.println("State could not be saved");
+                        JOptionPane.showMessageDialog(frame, "Could not save the state",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
         }));
 
-        fileMenu.add(new JMenuItem(new AbstractAction("Debugger") {
+        final JMenu systemMenu = new JMenu("System");
+        menuBar.add(systemMenu);
+
+        systemMenu.add(new JMenuItem(new AbstractAction("Debugger") {
             public void actionPerformed(ActionEvent e) {
                 debugger.setVisible(true);
+            }
+        }));
+
+        systemMenu.add(new JMenuItem(new AbstractAction("Frequency") {
+            public void actionPerformed(ActionEvent e) {
+                SpinnerNumberModel sModel = new SpinnerNumberModel(getFrequency(), 100, 10000, 1);
+                JSpinner spinner = new JSpinner(sModel);
+                int option = JOptionPane.showOptionDialog(
+                        null,
+                        spinner,
+                        "Set frequency",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        null,
+                        null);
+                if (option == JOptionPane.OK_OPTION) {
+                    setFrequency((Integer) spinner.getValue());
+                }
             }
         }));
 
@@ -162,26 +194,12 @@ public class Chippy8 {
             }
         }));
 
-        JMenu cpu = new JMenu("CPU");
-        menuBar.add(cpu);
+        final JMenu helpMenu = new JMenu("Help");
+        menuBar.add(helpMenu);
 
-        cpu.add(new JMenuItem(new AbstractAction("Frequency") {
+        helpMenu.add(new JMenuItem(new AbstractAction("About") {
             public void actionPerformed(ActionEvent e) {
-                //Integer s = (Integer) JOptionPane.showInputDialog("lmao");
-                SpinnerNumberModel sModel = new SpinnerNumberModel(getFrequency(), 100, 10000, 1);
-                JSpinner spinner = new JSpinner(sModel);
-                int option = JOptionPane.showOptionDialog(
-                        null,
-                        spinner,
-                        "Set frequency",
-                        JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        null,
-                        null);
-                if (option == JOptionPane.OK_OPTION) {
-                    setFrequency((Integer) spinner.getValue());
-                }
+                about.setVisible(true);
             }
         }));
 
