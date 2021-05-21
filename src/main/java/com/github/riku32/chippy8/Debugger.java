@@ -181,6 +181,7 @@ public class Debugger extends JFrame implements Runnable {
         add(tabbedPane, constraints);
 
         pack();
+        this.setResizable(false);
     }
 
     public void run() {

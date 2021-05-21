@@ -2,7 +2,7 @@
 CHIP-8 emulator implementation written in Java for APCS. This emulator has a debugger built in and runs at 600hz.
 
 ### What is CHIP-8?
-CHIP-8 is an interpreted programming language, developed by Joseph Weisbecker. It was initially used on the COSMAC VIP and Telmac 1800 8-bit microcomputers in the mid-1970s. CHIP-8 programs are run on a CHIP-8 virtual machine. It was made to allow video games to be more easily programmed for these computers.
+CHIP-8 is a virtual machine, developed by Joseph Weisbecker. It was initially used on the COSMAC VIP and Telmac 1800 8-bit microcomputers in the mid-1970s. CHIP-8 programs are run on a CHIP-8 virtual machine. It was made to allow video games to be more easily programmed for these computers.
 
 ### Controls
 Each game has its own set of unique controls. It should be easy to figure them out though. The original CHIP-8 keys have been mapped to new keys on your keyboard. Below are the original and mapped controls
