@@ -84,11 +84,12 @@ public class Chippy8 {
                     if (hasExtension(chooser.getSelectedFile().getName(), "state")) {
                         try {
                             chip8.loadState(buffer);
+                            display.repaint();
                         } catch (Exception ignored) {
                             JOptionPane.showMessageDialog(frame, "There was a problem deserializing the state",
                                     "Error", JOptionPane.ERROR_MESSAGE);
                         }
-                    } else if (hasExtension(chooser.getSelectedFile().getName(), "ch8")) {
+                    } else if (hasExtension(chooser.getSelectedFile().getName(), "ch8", "rom")) {
                         chip8.loadRom(buffer);
                     } else {
                         JOptionPane.showMessageDialog(frame, "Invalid file type provided",
