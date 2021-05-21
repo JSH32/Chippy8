@@ -10,21 +10,18 @@ public class Input implements Keypad {
     private final boolean[] keys = new boolean[16];
 
     public Input() {
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
-            @Override
-            public boolean dispatchKeyEvent(KeyEvent e) {
-                synchronized (Keyboard.class) {
-                    switch (e.getID()) {
-                        case KeyEvent.KEY_PRESSED:
-                            set(true, e.getKeyCode());
-                            break;
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(e -> {
+            synchronized (Keyboard.class) {
+                switch (e.getID()) {
+                    case KeyEvent.KEY_PRESSED:
+                        set(true, e.getKeyCode());
+                        break;
 
-                        case KeyEvent.KEY_RELEASED:
-                            set(false, e.getKeyCode());
-                            break;
-                    }
-                    return false;
+                    case KeyEvent.KEY_RELEASED:
+                        set(false, e.getKeyCode());
+                        break;
                 }
+                return false;
             }
         });
     }

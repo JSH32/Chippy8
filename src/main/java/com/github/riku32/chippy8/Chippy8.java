@@ -2,14 +2,19 @@ package com.github.riku32.chippy8;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.github.riku32.chippy8.VM.Chip8;
+import lombok.Getter;
 
 import javax.sound.sampled.LineUnavailableException;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -19,9 +24,21 @@ public class Chippy8 {
     private final Chip8 chip8;
     private final Debugger debugger;
 
-    public Chippy8() throws IOException {
+    /**
+     * Check if file has extensions
+     */
+    private boolean hasExtension(String name, String ... extensions) {
+        for (String e : extensions)
+            if (name.toLowerCase(Locale.ROOT).endsWith(e))
+                return true;
+        return false;
+    }
+
+    public Chippy8(int frequency) throws IOException {
         Input keypad = new Input();
         this.chip8 = new Chip8(keypad);
+
+        setFrequency(frequency);
 
         // Register custom theme because Java is ugly
         FlatDarkLaf.setup();
@@ -37,27 +54,80 @@ public class Chippy8 {
         debugger.setVisible(false);
 
         final JMenuBar menuBar = new JMenuBar();
-        JMenu menu = new JMenu("File");
-        menuBar.add(menu);
+        JMenu fileMenu = new JMenu("File");
+        menuBar.add(fileMenu);
 
-        menu.add(new JMenuItem(new AbstractAction("Open") {
+        fileMenu.add(new JMenuItem(new AbstractAction("Open") {
             public void actionPerformed(ActionEvent e) {
                 JFileChooser chooser = new JFileChooser();
-                FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                        "CHIP-8 ROM", "rom", "ch8");
-                chooser.setFileFilter(filter);
+                chooser.setDialogTitle("Load rom or state");
+                chooser.addChoosableFileFilter(new FileNameExtensionFilter(
+                        "CHIP-8 ROM", "ch8"));
+                chooser.addChoosableFileFilter(new FileNameExtensionFilter(
+                        "Chippy State", "state"));
 
                 if (chooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                    byte[] buffer;
                     try {
-                        chip8.loadRom(Files.readAllBytes(chooser.getSelectedFile().toPath()));
+                        buffer = Files.readAllBytes(chooser.getSelectedFile().toPath());
                     } catch (Exception ignored) {
                         System.err.println("ROM file could not be read");
+                        return;
+                    }
+
+                    if (hasExtension(chooser.getSelectedFile().getName(), "state")) {
+                        try {
+                            chip8.loadState(buffer);
+                        } catch (Exception ignored) {
+                            ignored.printStackTrace();
+                            System.err.println("There was a problem deserializing state");
+                        }
+                    } else if (hasExtension(chooser.getSelectedFile().getName(), "ch8")) {
+                        chip8.loadRom(buffer);
+                    } else {
+                        System.err.println("Invalid file type provided");
                     }
                 }
             }
         }));
 
-        menu.add(new JMenuItem(new AbstractAction("Debugger") {
+        fileMenu.add(new JMenuItem(new AbstractAction("Save state") {
+            public void actionPerformed(ActionEvent e) {
+
+                byte[] state;
+                try {
+                    state = chip8.saveState();
+                } catch (Exception ignored) {
+                    System.err.println("Could not get state");
+                    return;
+                }
+
+                JFileChooser chooser = new JFileChooser();
+                chooser.setDialogTitle("Save state");
+                chooser.setFileFilter(new FileNameExtensionFilter(
+                        "Chippy State", "state"));
+
+                if (chooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        String pathToSave = chooser.getSelectedFile().getAbsolutePath();
+                        if (!pathToSave.endsWith(".state"))
+                            pathToSave += ".state";
+                        File file = new File(pathToSave);
+
+                        if (file.createNewFile()) {
+                            FileOutputStream outputStream = new FileOutputStream(file);
+                            outputStream.write(state);
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "That file already exists!");
+                        }
+                    } catch (Exception ignored) {
+                        System.err.println("State could not be saved");
+                    }
+                }
+            }
+        }));
+
+        fileMenu.add(new JMenuItem(new AbstractAction("Debugger") {
             public void actionPerformed(ActionEvent e) {
                 debugger.setVisible(true);
             }
@@ -92,6 +162,29 @@ public class Chippy8 {
             }
         }));
 
+        JMenu cpu = new JMenu("CPU");
+        menuBar.add(cpu);
+
+        cpu.add(new JMenuItem(new AbstractAction("Frequency") {
+            public void actionPerformed(ActionEvent e) {
+                //Integer s = (Integer) JOptionPane.showInputDialog("lmao");
+                SpinnerNumberModel sModel = new SpinnerNumberModel(getFrequency(), 100, 10000, 1);
+                JSpinner spinner = new JSpinner(sModel);
+                int option = JOptionPane.showOptionDialog(
+                        null,
+                        spinner,
+                        "Set frequency",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        null,
+                        null);
+                if (option == JOptionPane.OK_OPTION) {
+                    setFrequency((Integer) spinner.getValue());
+                }
+            }
+        }));
+
         frame.setJMenuBar(menuBar);
         frame.pack();
 
@@ -101,9 +194,21 @@ public class Chippy8 {
                 .scheduleAtFixedRate(debugger, 0, 60, TimeUnit.MILLISECONDS);
     }
 
-    private static final int FREQUENCY = 600;
-    private static final long PERIOD_NANOS = 1000000000 / FREQUENCY;
-    private static final int REFRESH_CYCLES = FREQUENCY / 60;
+    @Getter
+    private int frequency;
+    private long periodNanos;
+    private int refreshCycles;
+
+    /**
+     * Change frequency
+     *
+     * @param frequency in hz
+     */
+    public void setFrequency(int frequency) {
+        this.frequency = frequency;
+        this.periodNanos = 1000000000 / frequency;
+        this.refreshCycles = frequency / 60;
+    }
 
     // Game loop
     public void loop() {
@@ -116,7 +221,7 @@ public class Chippy8 {
                 chip8.cycle();
 
             // Screen, delay, and sound are all locked to 60hz
-            if (refreshCycles % (REFRESH_CYCLES) == 0) {
+            if (refreshCycles % (this.refreshCycles) == 0) {
                 refreshCycles = 0;
 
                 if (chip8.drawFlag) {
@@ -136,12 +241,12 @@ public class Chippy8 {
             refreshCycles++;
 
             long initNanos = System.nanoTime();
-            while (System.nanoTime() < initNanos + PERIOD_NANOS - (endTime - initTime));
+            while (System.nanoTime() < initNanos + periodNanos - (endTime - initTime));
         }
     }
 
     public static void main(String[] args) throws IOException {
-        Chippy8 chippy8 = new Chippy8();
+        Chippy8 chippy8 = new Chippy8(600);
 
         chippy8.loop();
     }

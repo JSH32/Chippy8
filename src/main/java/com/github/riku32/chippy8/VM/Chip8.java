@@ -1,9 +1,22 @@
 package com.github.riku32.chippy8.VM;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ser.std.ByteArraySerializer;
 import lombok.Getter;
 import lombok.Setter;
+import org.msgpack.core.MessageBufferPacker;
+import org.msgpack.core.MessagePack;
+import org.msgpack.core.MessageUnpacker;
+import org.msgpack.jackson.dataformat.MessagePackFactory;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class Chip8 {
@@ -61,6 +74,68 @@ public class Chip8 {
 
         for (int i = 0; i < rom.length; i++)
             this.memory[i + 0x200] = (short) (rom[i] & 0xFF);
+    }
+
+    public byte[] saveState() throws IOException {
+        MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+
+        // Registers
+        packer.packArrayHeader(V.length);
+        for (byte val : V)
+            packer.packByte(val);
+
+        // Stack
+        packer.packArrayHeader(stack.length);
+        for (short val : stack)
+            packer.packShort(val);
+
+        // VRAM
+        packer.packArrayHeader(videoMemory.length);
+        for (byte val : videoMemory)
+            packer.packByte(val);
+
+        packer.packShort(pc);
+        packer.packShort(sp);
+        packer.packShort(index);
+
+        // Memory
+        packer.packArrayHeader(memory.length);
+        for (short val : memory)
+            packer.packShort(val);
+
+        packer.close();
+
+        return packer.toByteArray();
+    }
+
+    public void loadState(byte[] state) throws IOException {
+        MessageUnpacker unpack = MessagePack.newDefaultUnpacker(state);
+
+        // Registers
+        int lenRegister = unpack.unpackArrayHeader();
+        for (int i = 0; i < lenRegister; i++)
+            V[i] = unpack.unpackByte();
+
+        // Stack
+        int lenStack = unpack.unpackArrayHeader();
+        for (int i = 0; i < lenStack; i++)
+            stack[i] = unpack.unpackShort();
+
+        // VRAM
+        int lenVRAM = unpack.unpackArrayHeader();
+        for (int i = 0; i < lenVRAM; i++)
+            videoMemory[i] = unpack.unpackByte();
+
+        pc = unpack.unpackShort();
+        sp = unpack.unpackShort();
+        index = unpack.unpackShort();
+
+        // Memory
+        int lenMemory = unpack.unpackArrayHeader();
+        for (int i = 0; i < lenMemory; i++)
+            memory[i] = unpack.unpackShort();
+
+        unpack.close();
     }
 
     public int getRegister(int reg) {
@@ -188,6 +263,8 @@ public class Chip8 {
                         return;
                 }
             default:
+                // Skip over invalid instruction (NOP)
+                pc += 2;
         }
     }
 

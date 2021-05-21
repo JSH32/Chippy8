@@ -8,6 +8,7 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class Debugger extends JFrame implements Runnable {
@@ -147,7 +148,7 @@ public class Debugger extends JFrame implements Runnable {
                     "Opcode"
             };
 
-            memoryTable = new JTable(new Object[21][3], columnNames) {
+            memoryTable = new JTable(new Object[29][3], columnNames) {
                 public boolean editCellAt(int row, int column, java.util.EventObject e) {
                     return false;
                 }
@@ -155,7 +156,7 @@ public class Debugger extends JFrame implements Runnable {
                 public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                     Component c = super.prepareRenderer(renderer, row, column);
                     if (!isRowSelected(row)) {
-                        c.setBackground(row == 10 ? Color.DARK_GRAY : getBackground());
+                        c.setBackground(row == 14 ? Color.DARK_GRAY : getBackground());
                         memoryTable.getSelectionModel().clearSelection();
                     }
                     return c;
@@ -169,7 +170,7 @@ public class Debugger extends JFrame implements Runnable {
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
             memoryPanel.add(scrollPane);
-            scrollPane.setPreferredSize(new Dimension(500, 450));
+            scrollPane.setPreferredSize(new Dimension(500, 610));
             memoryTable.setFillsViewportHeight(true);
             memoryTable.addRowSelectionInterval(10, 10);
             memoryTable.setCellSelectionEnabled(false);
@@ -198,10 +199,9 @@ public class Debugger extends JFrame implements Runnable {
 
         // Update memory table
         int tableI = 0;
-        for (int i = currentPos - 20; i <= currentPos + 20; i += 2) {
+        for (int i = currentPos - 28; i <= currentPos + 28; i += 2) {
             boolean inBounds = (i >= 0) && (i < memory.length);
-            if (!inBounds)
-                continue;
+            if (!inBounds) continue;
 
             memoryTable.setValueAt(String.format("%04X", i), tableI, 0);
             memoryTable.setValueAt(String.format("%04X", memory[i] << 8 | memory[i+1]), tableI, 1);

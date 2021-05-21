@@ -40,6 +40,7 @@ Some libraries were used in the making of this project, some are essential and o
 |[jinput](https://jinput.github.io/jinput/)|Capturing user keyboard input|
 |[Lombok](https://projectlombok.org/)|Replacing getters/setters with annotations, lowers LoC significantly|
 |[Flatlaf](https://www.formdev.com/flatlaf/)|Look and Feel for Java GUI, makes things not ugly|
+|[Msgpack](https://msgpack.org/)|Fast file serialization|
 
 ### How to compile?
 Due to using dependencies we require the maven build system, please make sure you have it installed first
