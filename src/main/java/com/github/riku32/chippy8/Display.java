@@ -8,7 +8,7 @@ import java.awt.*;
 
 public class Display extends JPanel {
     // The size of each pixel on the rendered screen
-    private static final int SCALE = 20;
+    private static final int SCALE = 10;
 
     private static final int WIDTH = 64 * SCALE;
     private static final int HEIGHT = 32 * SCALE;

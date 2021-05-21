@@ -1,7 +1,7 @@
 <p align="center">
   <img width="500px" src="https://raw.githubusercontent.com/Riku32/Chippy8/master/.github/banner.png">
 </p>
-CHIP-8 emulator implementation written in Java for APCS. This emulator has a debugger built in and runs at 600hz.
+CHIP-8 emulator implementation written in Java for APCS. This emulator has a debugger built in and runs at 600hz by default.
 
 ### What is CHIP-8?
 CHIP-8 is a virtual machine, developed by Joseph Weisbecker. It was initially used on the COSMAC VIP and Telmac 1800 8-bit microcomputers in the mid-1970s. CHIP-8 programs are run on a CHIP-8 virtual machine. It was made to allow video games to be more easily programmed for these computers.
