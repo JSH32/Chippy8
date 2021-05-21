@@ -1,4 +1,6 @@
-## Chippy8
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Riku32/Chippy8/master/.git/banner.png">
+</p>
 CHIP-8 emulator implementation written in Java for APCS. This emulator has a debugger built in and runs at 600hz.
 
 ### What is CHIP-8?
