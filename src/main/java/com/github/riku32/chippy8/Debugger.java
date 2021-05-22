@@ -4,6 +4,7 @@ import com.github.riku32.chippy8.VM.Chip8;
 import lombok.Getter;
 
 import javax.swing.*;
+import javax.swing.plaf.ColorUIResource;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
@@ -18,9 +19,9 @@ public class Debugger extends JFrame implements Runnable {
     // 0, 1 - PC and I
     // 2-18 - Registers
     // 19, 20 - DT and ST
-    private final JTextField[] registerValues = new JTextField[20];
+    private final JTextArea[] registerValues = new JTextArea[20];
 
-    private final JTable memoryTable;
+    private final JTable disassemblyTable;
 
     @Getter
     private boolean paused = false;
@@ -76,6 +77,9 @@ public class Debugger extends JFrame implements Runnable {
             add(toolBar, toolbarConstraints);
         }
 
+        // Set for text areas to still have backgrounds despite being not editable, done for aesthetics
+        UIManager.put("TextArea.inactiveBackground", UIManager.get("TextArea.background"));
+
         // Registers
         {
             JPanel registerPanel = new JPanel();
@@ -97,7 +101,7 @@ public class Debugger extends JFrame implements Runnable {
             // PC, I
             for (int i = 0; i < 2; i++) {
                 JLabel label = new JLabel(i == 0 ? "PC" : "I");
-                registerValues[i] = new JTextField(String.valueOf(i == 0 ? chip8.getPc() : chip8.getIndex()));
+                registerValues[i] = new JTextArea(String.valueOf(i == 0 ? chip8.getPc() : chip8.getIndex()));
                 registerValues[i].setEditable(false);
 
                 groupLabels.addComponent(label);
@@ -109,8 +113,8 @@ public class Debugger extends JFrame implements Runnable {
 
             // Registers
             for (int i = 2; i < 18; i++) {
-                JLabel label = new JLabel(String.format("V%s", i-1));
-                registerValues[i] = new JTextField(String.valueOf(chip8.getRegister(i-2)));
+                JLabel label = new JLabel(String.format("V%s", i - 1));
+                registerValues[i] = new JTextArea(String.valueOf(chip8.getRegister(i - 2)));
                 registerValues[i].setEditable(false);
 
                 groupLabels.addComponent(label);
@@ -123,7 +127,7 @@ public class Debugger extends JFrame implements Runnable {
             // Timers
             for (int i = 18; i < 20; i++) {
                 JLabel label = new JLabel(i == 18 ? "DT" : "ST");
-                registerValues[i] = new JTextField(String.valueOf(i == 18 ? chip8.getDelayTimer() : chip8.getSoundTimer()));
+                registerValues[i] = new JTextArea(String.valueOf(i == 18 ? chip8.getDelayTimer() : chip8.getSoundTimer()));
                 registerValues[i].setEditable(false);
 
                 groupLabels.addComponent(label);
@@ -146,7 +150,7 @@ public class Debugger extends JFrame implements Runnable {
                     "Opcode"
             };
 
-            memoryTable = new JTable(new Object[29][3], columnNames) {
+            disassemblyTable = new JTable(new Object[27][3], columnNames) {
                 public boolean editCellAt(int row, int column, java.util.EventObject e) {
                     return false;
                 }
@@ -154,26 +158,26 @@ public class Debugger extends JFrame implements Runnable {
                 public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                     Component c = super.prepareRenderer(renderer, row, column);
                     if (!isRowSelected(row)) {
-                        c.setBackground(row == 14 ? Color.DARK_GRAY : getBackground());
-                        memoryTable.getSelectionModel().clearSelection();
+                        c.setBackground(row == 13 ? Color.DARK_GRAY : getBackground());
+                        disassemblyTable.getSelectionModel().clearSelection();
                     }
                     return c;
                 }
             };
 
-            memoryTable.getTableHeader().setReorderingAllowed(false);
+            disassemblyTable.getTableHeader().setReorderingAllowed(false);
 
-            JScrollPane scrollPane = new JScrollPane(memoryTable,
+            JScrollPane scrollPane = new JScrollPane(disassemblyTable,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
             memoryPanel.add(scrollPane);
-            scrollPane.setPreferredSize(new Dimension(500, 610));
-            memoryTable.setFillsViewportHeight(true);
-            memoryTable.addRowSelectionInterval(10, 10);
-            memoryTable.setCellSelectionEnabled(false);
+            scrollPane.setPreferredSize(new Dimension(500, 570));
+            disassemblyTable.setFillsViewportHeight(true);
+            disassemblyTable.addRowSelectionInterval(10, 10);
+            disassemblyTable.setCellSelectionEnabled(false);
 
-            tabbedPane.addTab("Memory", memoryPanel);
+            tabbedPane.addTab("Disassembly", memoryPanel);
         }
 
         constraints.fill = GridBagConstraints.BOTH;
@@ -197,13 +201,13 @@ public class Debugger extends JFrame implements Runnable {
 
         // Update memory table
         int tableI = 0;
-        for (int i = currentPos - 28; i <= currentPos + 28; i += 2) {
+        for (int i = currentPos - 26; i <= currentPos + 26; i += 2) {
             boolean inBounds = (i >= 0) && (i < memory.length);
             if (!inBounds) continue;
 
-            memoryTable.setValueAt(String.format("%04X", i), tableI, 0);
-            memoryTable.setValueAt(String.format("%04X", memory[i] << 8 | memory[i+1]), tableI, 1);
-            memoryTable.setValueAt(chip8.disassembleOpcode((short) i), tableI, 2);
+            disassemblyTable.setValueAt(String.format("%04X", i), tableI, 0);
+            disassemblyTable.setValueAt(String.format("%04X", memory[i] << 8 | memory[i+1]), tableI, 1);
+            disassemblyTable.setValueAt(chip8.disassembleOpcode((short) i), tableI, 2);
             tableI++;
         }
     }
