@@ -4,13 +4,11 @@ import com.github.riku32.chippy8.VM.Chip8;
 import lombok.Getter;
 
 import javax.swing.*;
-import javax.swing.plaf.ColorUIResource;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Objects;
 
 public class Debugger extends JFrame implements Runnable {
@@ -113,8 +111,8 @@ public class Debugger extends JFrame implements Runnable {
 
             // Registers
             for (int i = 2; i < 18; i++) {
-                JLabel label = new JLabel(String.format("V%s", i - 1));
-                registerValues[i] = new JTextArea(String.valueOf(chip8.getRegister(i - 2)));
+                JLabel label = new JLabel(String.format("V%s", i - 2));
+                registerValues[i] = new JTextArea(String.valueOf(chip8.getV()[i - 2]));
                 registerValues[i].setEditable(false);
 
                 groupLabels.addComponent(label);
@@ -188,18 +186,23 @@ public class Debugger extends JFrame implements Runnable {
     }
 
     public void run() {
-        // Update registers
-        for (int i = 0; i < 2; i++)
-            registerValues[i].setText(String.format("%04X", i == 0 ? chip8.getPc() : chip8.getIndex()));
-        for (int i = 2; i < 18; i++)
-            registerValues[i].setText(String.format("%02X", chip8.getRegister(i-2) & 0xff));
-        for (int i = 18; i < 20; i++)
-            registerValues[i].setText(String.format("%02X", i == 18 ? chip8.getDelayTimer() : chip8.getSoundTimer()));
+        // PC and Index
+        registerValues[0].setText(String.format("%04X", chip8.getPc()));
+        registerValues[1].setText(String.format("%04X", chip8.getIndex()));
+
+        // Registers
+        byte[] registers = chip8.getV();
+        for (int i = 0; i < 16; i++)
+            registerValues[i + 2].setText(String.format("%02X", registers[i] & 0xff));
+
+        // Timers
+        registerValues[18].setText(String.format("%02X", chip8.getDelayTimer()));
+        registerValues[19].setText(String.format("%02X", chip8.getSoundTimer()));
 
         int currentPos = chip8.getPc();
         short[] memory = chip8.getMemory();
 
-        // Update memory table
+        // Update disassembly table
         int tableI = 0;
         for (int i = currentPos - 26; i <= currentPos + 26; i += 2) {
             boolean inBounds = (i >= 0) && (i < memory.length);

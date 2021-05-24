@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Objects;
-import java.util.Properties;
 
 public class About extends JFrame {
     public About() throws IOException {

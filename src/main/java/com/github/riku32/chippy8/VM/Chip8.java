@@ -8,11 +8,11 @@ import org.msgpack.core.MessageUnpacker;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Random;
 
 public class Chip8 {
     // 16 8-bit registers (VX) where X is 0-F
+    @Getter
     private final byte[] V = new byte[16];
 
     // 4 kilobyte memory
@@ -20,9 +20,11 @@ public class Chip8 {
     private final short[] memory = new short[4096];
 
     // Stack 16 in size with 16-bit values
+    @Getter
     private final short[] stack = new short[16];
 
     // Stack pointer
+    @Getter
     private short sp;
 
     // Current index and program counter registers
@@ -38,25 +40,32 @@ public class Chip8 {
 
     private final Keypad keypad;
 
-    // Two timers
+    private final Random random = new Random();
+
+    // Two timers used internally by CHIP-8
     @Getter
     @Setter
     private byte delayTimer, soundTimer;
 
     public boolean drawFlag = true;
 
-    private final Random random = new Random();
+    /**
+     * While debugger has a paused flag this is needed internally
+     * To prevent cycles on other threads (which is usually ok) while changing internal contents during state/rom loads
+     */
+    private boolean paused = false;
 
     public Chip8(Keypad keypad) {
         this.keypad = keypad;
     }
 
+    /**
+     * Load a ROM from byte buffer
+     *
+     * @param rom byte buffer
+     */
     public void loadRom(byte[] rom) {
-        Arrays.fill(memory, (short) 0);
-        Arrays.fill(stack, (short) 0);
-        Arrays.fill(V, (byte) 0);
-        Arrays.fill(videoMemory, (byte) 0);
-        System.arraycopy(Constants.FONT_SET, 0, memory, 0, Constants.FONT_SET.length);
+        paused = true;
 
         // Reset values
         pc = 0x200;
@@ -64,12 +73,30 @@ public class Chip8 {
         index = 0;
         delayTimer = soundTimer = 0;
 
+        Arrays.fill(stack, (short) 0);
+        Arrays.fill(V, (byte) 0);
+        Arrays.fill(videoMemory, (byte) 0);
+        System.arraycopy(Constants.FONT_SET, 0, memory, 0, Constants.FONT_SET.length);
+
         for (int i = 0; i < rom.length; i++)
             this.memory[i + 0x200] = (short) (rom[i] & 0xFF);
+
+        paused = false;
     }
 
+    /**
+     * Save state as a byte buffer
+     *
+     * @return state
+     */
     public byte[] saveState() throws IOException {
+        paused = true;
+
         MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+
+        packer.packShort(pc);
+        packer.packShort(sp);
+        packer.packShort(index);
 
         // Registers
         packer.packArrayHeader(V.length);
@@ -81,27 +108,36 @@ public class Chip8 {
         for (short val : stack)
             packer.packShort(val);
 
-        // VRAM
-        packer.packArrayHeader(videoMemory.length);
-        for (byte val : videoMemory)
-            packer.packByte(val);
-
-        packer.packShort(pc);
-        packer.packShort(sp);
-        packer.packShort(index);
-
         // Memory
         packer.packArrayHeader(memory.length);
         for (short val : memory)
             packer.packShort(val);
 
+        // VRAM
+        packer.packArrayHeader(videoMemory.length);
+        for (byte val : videoMemory)
+            packer.packByte(val);
+
         packer.close();
+
+        paused = false;
 
         return packer.toByteArray();
     }
 
+    /**
+     * Load a state from byte buffer
+     *
+     * @param state byte buffer
+     */
     public void loadState(byte[] state) throws IOException {
+        paused = true;
+
         MessageUnpacker unpack = MessagePack.newDefaultUnpacker(state);
+
+        pc = unpack.unpackShort();
+        sp = unpack.unpackShort();
+        index = unpack.unpackShort();
 
         // Registers
         int lenRegister = unpack.unpackArrayHeader();
@@ -113,25 +149,19 @@ public class Chip8 {
         for (int i = 0; i < lenStack; i++)
             stack[i] = unpack.unpackShort();
 
-        // VRAM
-        int lenVRAM = unpack.unpackArrayHeader();
-        for (int i = 0; i < lenVRAM; i++)
-            videoMemory[i] = unpack.unpackByte();
-
-        pc = unpack.unpackShort();
-        sp = unpack.unpackShort();
-        index = unpack.unpackShort();
-
         // Memory
         int lenMemory = unpack.unpackArrayHeader();
         for (int i = 0; i < lenMemory; i++)
             memory[i] = unpack.unpackShort();
 
-        unpack.close();
-    }
+        // VRAM
+        int lenVRAM = unpack.unpackArrayHeader();
+        for (int i = 0; i < lenVRAM; i++)
+            videoMemory[i] = unpack.unpackByte();
 
-    public int getRegister(int reg) {
-        return V[reg];
+        unpack.close();
+
+        paused = false;
     }
 
     /**
@@ -139,6 +169,9 @@ public class Chip8 {
      *
      */
     public void cycle() {
+        // Do not run cycle if paused
+        if (paused) return;
+
         switch (op() & 0xF000) {
             case 0x000:
                 switch (op()) {
@@ -634,7 +667,6 @@ public class Chip8 {
 
     // LD B, Vx
     private void op_FX33() {
-        // Make unsigned, java has no unsigned types but we need it anyway for carry
         int uVX = V[opX()] & 0xff;
 
         memory[index] = (short) ((uVX % 1000) / 100);
