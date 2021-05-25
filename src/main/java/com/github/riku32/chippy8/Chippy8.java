@@ -4,14 +4,12 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.github.riku32.chippy8.VM.Chip8;
 import lombok.Getter;
 
-import javax.sound.sampled.LineUnavailableException;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Locale;
@@ -243,9 +241,9 @@ public class Chippy8 {
             if (refreshCycles % (this.refreshCycles) == 0) {
                 refreshCycles = 0;
 
-                if (chip8.drawFlag) {
+                if (chip8.isDrawFlag()) {
                     display.repaint();
-                    chip8.drawFlag = false;
+                    chip8.resetDrawFlag();
                 }
 
                 if (chip8.getDelayTimer() > 0)

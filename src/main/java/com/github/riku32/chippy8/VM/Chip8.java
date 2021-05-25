@@ -47,7 +47,9 @@ public class Chip8 {
     @Setter
     private byte delayTimer, soundTimer;
 
-    public boolean drawFlag = true;
+    // Has the screen been updated and not been dealt with
+    @Getter
+    private boolean drawFlag = true;
 
     /**
      * While debugger has a paused flag this is needed internally
@@ -57,6 +59,13 @@ public class Chip8 {
 
     public Chip8(Keypad keypad) {
         this.keypad = keypad;
+    }
+
+    /**
+     * Reset draw flag
+     */
+    public void resetDrawFlag() {
+        drawFlag = false;
     }
 
     /**
